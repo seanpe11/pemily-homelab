@@ -1,0 +1,13 @@
+- name: Home Assistant compose file matches the repo
+  ansible.builtin.copy:
+    src: "{{ playbook_dir }}/../compose/homeassistant/docker-compose.yml"
+    dest: "{{ homelab_home }}/smarthome/docker-compose.yml"
+    mode: "0644"
+    backup: true
+  register: ha_compose
+
+- name: Apply compose only when the file changed
+  ansible.builtin.command:
+    cmd: docker compose up -d
+    chdir: "{{ homelab_home }}/smarthome"
+  when: ha_compose.changed

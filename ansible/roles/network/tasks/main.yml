@@ -1,0 +1,5 @@
+# Tagged `never`: run only with --tags network, and only from a session that
+# isn't relying on the interface being changed. Reserve eno1's address on the router first.
+- name: Placeholder — wifi disable and eno1 reservation not implemented yet
+  ansible.builtin.debug:
+    msg: "Set the DHCP reservation for eno1 (HOST_LAN_IP) on the router, then implement a netplan change here."

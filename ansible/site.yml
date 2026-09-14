@@ -1,0 +1,9 @@
+- name: donnager host layer
+  hosts: donnager
+  roles:
+    - { role: homeassistant, tags: [user, homeassistant] }
+    - { role: user_services, tags: [user, services] }
+    - { role: base,          tags: [root, base],    become: true }
+    - { role: cockpit,       tags: [root, cockpit], become: true }
+    - { role: lvm,           tags: [root, lvm],     become: true }
+    - { role: network,       tags: [network, never], become: true }

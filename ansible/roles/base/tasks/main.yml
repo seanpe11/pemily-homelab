@@ -1,0 +1,11 @@
+- name: Enable linger so user services survive logout and reboot
+  ansible.builtin.command: loginctl enable-linger {{ homelab_user }}
+  args:
+    creates: "/var/lib/systemd/linger/{{ homelab_user }}"
+
+- name: smartmontools, to check the SSD's health
+  ansible.builtin.apt:
+    name: smartmontools
+    state: present
+    update_cache: true
+    cache_valid_time: 86400

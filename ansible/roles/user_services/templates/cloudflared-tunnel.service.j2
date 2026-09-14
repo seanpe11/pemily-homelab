@@ -1,0 +1,12 @@
+[Unit]
+Description=Cloudflare tunnel {{ cloudflared_tunnel_name }} (home.seanpe.io -> Home Assistant)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+ExecStart={{ homelab_home }}/.local/bin/cloudflared --no-autoupdate tunnel --config {{ homelab_home }}/.cloudflared/config.yml run {{ cloudflared_tunnel_name }}
+Restart=on-failure
+RestartSec=10
+
+[Install]
+WantedBy=default.target

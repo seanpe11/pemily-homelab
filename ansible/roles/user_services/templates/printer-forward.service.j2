@@ -1,0 +1,13 @@
+[Unit]
+Description=Tailnet -> LAN forwarder for Fluidd/Moonraker ({{ printer_lan_ip }})
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+# Binds to the tailscale IP; Restart covers boot order (tailscale0 may come up later).
+ExecStart=/usr/bin/python3 {{ homelab_home }}/printer-forward/forward.py
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=default.target

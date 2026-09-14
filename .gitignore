@@ -1,0 +1,23 @@
+# ─── Secrets: never commit ─────────────────────────────────
+secrets/
+*.key
+*.pem
+*.p8
+*.agekey
+keys.txt
+.env
+.env.*
+**/*credentials*.json
+# cloudflared tunnel credentials are <uuid>.json in ~/.cloudflared — never copied here
+
+# ─── Kubernetes ────────────────────────────────────────────
+kubeconfig*
+*.kubeconfig
+
+# ─── Ansible ───────────────────────────────────────────────
+*.retry
+.vault_pass*
+
+# ─── Editor / OS ───────────────────────────────────────────
+.DS_Store
+*.swp

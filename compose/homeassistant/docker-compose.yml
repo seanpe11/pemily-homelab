@@ -1,0 +1,15 @@
+services:
+  homeassistant:
+    image: ghcr.io/home-assistant/home-assistant:2026.6.4
+    container_name: homeassistant
+    restart: unless-stopped
+    network_mode: host
+    cap_add:
+      - NET_ADMIN      # Bluetooth adapter management
+      - NET_RAW
+    volumes:
+      - ./homeassistant:/config
+      - /run/dbus:/run/dbus:ro
+      - /etc/localtime:/etc/localtime:ro
+    devices:
+      - /dev/serial/by-id/usb-SONOFF_SONOFF_Dongle_Lite_MG21_46c60d1b46a2ef11a4a88c6661ce3355-if00-port0:/dev/ttyUSB0

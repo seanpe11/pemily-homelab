@@ -1,0 +1,7 @@
+tunnel: {{ cloudflared_tunnel_id }}
+credentials-file: {{ homelab_home }}/.cloudflared/{{ cloudflared_tunnel_id }}.json
+
+ingress:
+  - hostname: home.seanpe.io
+    service: http://localhost:8123
+  - service: http_status:404

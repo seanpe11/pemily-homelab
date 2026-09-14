@@ -1,0 +1,18 @@
+- name: Cockpit socket override directory
+  ansible.builtin.file:
+    path: /etc/systemd/system/cockpit.socket.d
+    state: directory
+    mode: "0755"
+
+- name: Bind Cockpit to the tailnet IP only
+  ansible.builtin.copy:
+    dest: /etc/systemd/system/cockpit.socket.d/listen.conf
+    mode: "0644"
+    content: |
+      # Managed by pemily-homelab/ansible — Cockpit on the tailnet only.
+      [Socket]
+      ListenStream=
+      ListenStream={{ tailnet_ip }}:9090
+      # tailscale0 may not exist yet at boot; FreeBind lets the socket bind anyway.
+      FreeBind=yes
+  notify: Restart cockpit socket

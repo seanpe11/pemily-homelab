@@ -1,0 +1,25 @@
+# Creates LVs from free VG space. Never touches ubuntu-lv, never shrinks, never resizes.
+- name: Create logical volumes
+  community.general.lvol:
+    vg: "{{ lvm_vg }}"
+    lv: "{{ item.name }}"
+    size: "{{ item.size }}"
+    shrink: false
+    resizefs: false
+  loop: "{{ lvm_volumes }}"
+
+- name: ext4 on each new LV (skips if a filesystem already exists)
+  community.general.filesystem:
+    fstype: ext4
+    dev: "/dev/{{ lvm_vg }}/{{ item.name }}"
+    force: false
+  loop: "{{ lvm_volumes }}"
+
+- name: Mount and persist in fstab
+  ansible.posix.mount:
+    path: "{{ item.mount }}"
+    src: "/dev/{{ lvm_vg }}/{{ item.name }}"
+    fstype: ext4
+    opts: defaults,noatime
+    state: mounted
+  loop: "{{ lvm_volumes }}"

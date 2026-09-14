@@ -1,0 +1,80 @@
+- name: Read linger state
+  ansible.builtin.command: loginctl show-user {{ homelab_user }} -p Linger --value
+  register: linger
+  check_mode: false   # read-only; needed so --check can evaluate the linger gate
+  changed_when: false
+
+- name: Try enabling linger without root (polkit may refuse)
+  ansible.builtin.command: loginctl enable-linger {{ homelab_user }}
+  when: linger.stdout != "yes"
+  register: linger_try
+  failed_when: false
+  changed_when: linger_try.rc == 0
+
+- name: Re-read linger state
+  ansible.builtin.command: loginctl show-user {{ homelab_user }} -p Linger --value
+  register: linger_now
+  check_mode: false   # read-only; needed so --check can evaluate the linger gate
+  changed_when: false
+
+- name: Cloudflared config matches the repo
+  ansible.builtin.template:
+    src: cloudflared-config.yml.j2
+    dest: "{{ homelab_home }}/.cloudflared/config.yml"
+    mode: "0600"
+    backup: true
+
+- name: printer-forward script matches the repo
+  ansible.builtin.copy:
+    src: forward.py
+    dest: "{{ homelab_home }}/printer-forward/forward.py"
+    mode: "0755"
+
+- name: User unit directory exists
+  ansible.builtin.file:
+    path: "{{ homelab_home }}/.config/systemd/user"
+    state: directory
+    mode: "0755"
+
+- name: Install user units
+  ansible.builtin.template:
+    src: "{{ item }}.service.j2"
+    dest: "{{ homelab_home }}/.config/systemd/user/{{ item }}.service"
+    mode: "0644"
+  loop: [cloudflared-tunnel, printer-forward]
+
+- name: Stop here without linger — units would die when this SSH session ends
+  ansible.builtin.debug:
+    msg: >-
+      Linger is '{{ linger_now.stdout }}'. Units are installed but NOT enabled and the loose
+      processes are left running. Run the root tag (base role enables linger), then re-run --tags user.
+  when: linger_now.stdout != "yes"
+
+- name: Cut-over (only with linger)
+  when: linger_now.stdout == "yes"
+  block:
+    - name: Reload the user manager
+      ansible.builtin.systemd_service:
+        scope: user
+        daemon_reload: true
+
+    - name: Stop loose processes started outside systemd (match on exe + argv, never pkill -f)
+      ansible.builtin.shell: |
+        for pid in $(pgrep -x cloudflared) $(pgrep -x python3); do
+          args=$(tr '\0' ' ' < /proc/$pid/cmdline 2>/dev/null)
+          cg=$(cat /proc/$pid/cgroup 2>/dev/null)
+          case "$cg" in *app.slice/cloudflared-tunnel.service*|*app.slice/printer-forward.service*) continue;; esac
+          case "$args" in *"tunnel run {{ cloudflared_tunnel_name }}"*|*printer-forward/forward.py*|*" forward.py"*) kill "$pid" && echo "stopped $pid: $args";; esac
+        done
+      args:
+        executable: /bin/bash
+      register: loose
+      changed_when: loose.stdout | length > 0
+
+    - name: Enable and start user units
+      ansible.builtin.systemd_service:
+        scope: user
+        name: "{{ item }}"
+        enabled: true
+        state: started
+      loop: [cloudflared-tunnel, printer-forward]

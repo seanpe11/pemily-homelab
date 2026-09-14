@@ -1,0 +1,18 @@
+homelab_user: pemily
+homelab_home: /home/pemily
+tailnet_ip: TAILNET_IP
+
+# Cloudflare tunnel (credentials JSON stays on the host, never in git)
+cloudflared_tunnel_name: pemily-home
+cloudflared_tunnel_id: TUNNEL_ID
+
+# Klipper printer on the LAN, exposed to the tailnet by printer-forward
+printer_lan_ip: PRINTER_LAN_IP
+
+# LVM layout — see vault note "Storage layout". Existing root LV is never touched.
+lvm_vg: ubuntu-vg
+lvm_volumes:
+  - { name: k3s-family,     size: 100g, mount: /var/lib/rancher/k3s/storage }
+  - { name: immich-library, size: 350g, mount: /srv/immich/library }
+  - { name: immich-backups, size: 250g, mount: /srv/backups/immich }
+# Incus gets its own pool from the VG in Phase 3; not pre-created here.
