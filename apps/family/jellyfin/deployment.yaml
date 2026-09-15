@@ -1,0 +1,45 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: jellyfin
+  namespace: apps
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: jellyfin
+  template:
+    metadata:
+      labels:
+        app: jellyfin
+    spec:
+      # Pin to your powerful node (Pegasus) for transcoding
+      nodeSelector:
+        kubernetes.io/hostname: pegasus # Change this to the actual node name if different
+      containers:
+      - name: jellyfin
+        image: jellyfin/jellyfin:latest
+        env:
+        - name: JEFFYFIN_PublishedServerUrl
+          value: "https://jf.seanpe.io"
+        ports:
+        - containerPort: 8096
+        volumeMounts:
+        - name: config-volume
+          mountPath: /config
+        - name: media-volume
+          mountPath: /media # Where your library lives inside the container
+          readOnly: true
+        # --- TRANSCODING CONFIGURATION ---
+        resources:
+          limits:
+            nvidia.com/gpu: 1 # Requests 1 GPU slice
+      volumes:
+      - name: config-volume
+        persistentVolumeClaim:
+          claimName: jellyfin-config-pvc
+      - name: media-volume
+        hostPath:
+          # UPDATE THIS PATH to where your movies actually live on the Pegasus node
+          path: /mnt/media/movies 
+          type: Directory

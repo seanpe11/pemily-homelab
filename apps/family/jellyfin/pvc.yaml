@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: jellyfin-config-pvc
+  namespace: apps
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: "local-path"
+  resources:
+    requests:
+      storage: 2Gi
+---
+# We define the media volume directly in the deployment as a hostPath
+# because PVCs for existing bulk media libraries can be tricky with local-path.
