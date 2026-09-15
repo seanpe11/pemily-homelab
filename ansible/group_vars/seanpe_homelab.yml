@@ -1,0 +1,4 @@
+# The seanpe-homelab (personal) cluster: k3s inside the Incus VM on donnager. Flux: seanpe11/seanpe-homelab.
+k3s_cluster_name: seanpe-homelab
+k3s_storage_mount: ""                  # PVs live on the VM's root disk (btrfs volume on donnager's incus LV)
+k3s_api_url: https://127.0.0.1:6444    # through the SSH tunnel unit in seanpe-homelab/ops/rocinante

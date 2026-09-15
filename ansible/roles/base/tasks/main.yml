@@ -1,3 +1,25 @@
+# k3s names its node after the hostname at install time, so this must run before the k3s role.
+- name: Hostname is {{ host_name }}
+  ansible.builtin.hostname:
+    name: "{{ host_name }}"
+
+- name: /etc/hosts resolves the hostname locally
+  ansible.builtin.lineinfile:
+    path: /etc/hosts
+    regexp: '^127\.0\.1\.1\s'
+    line: "127.0.1.1 {{ host_name }}"
+
+- name: Read the Tailscale node name
+  ansible.builtin.command: tailscale status --self --json
+  register: ts_self
+  changed_when: false
+  check_mode: false
+
+# MagicDNS follows (<name>.taile41aef.ts.net) unless the machine was renamed in the admin console.
+- name: Tailscale node name is {{ host_name }}
+  ansible.builtin.command: tailscale set --hostname={{ host_name }}
+  when: (ts_self.stdout | from_json).Self.HostName != host_name
+
 - name: Enable linger so user services survive logout and reboot
   ansible.builtin.command: loginctl enable-linger {{ homelab_user }}
   args:

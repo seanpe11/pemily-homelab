@@ -1,0 +1,65 @@
+# Incus: KVM VMs on donnager. Today that's the seanpe-homelab (personal) cluster; the host itself
+# stays free for the pemily-homelab family cluster.
+- name: Incus and btrfs tools
+  ansible.builtin.apt:
+    name: [incus, btrfs-progs]
+    state: present
+    update_cache: true
+    cache_valid_time: 86400
+
+- name: "{{ homelab_user }} can run incus without sudo"
+  ansible.builtin.user:
+    name: "{{ homelab_user }}"
+    groups: incus-admin
+    append: true
+
+# Docker (iptables backend) sets the FORWARD policy to DROP, which silently cuts VMs on incusbr0 off
+# from the internet. Incus's documented fix: accept incusbr0 in DOCKER-USER, re-applied with Docker.
+- name: incusbr0 forwarding survives Docker
+  ansible.builtin.template:
+    src: incus-docker-forward.service.j2
+    dest: /etc/systemd/system/incus-docker-forward.service
+    mode: "0644"
+  notify: Restart incus-docker-forward
+
+- name: incus-docker-forward is enabled and applied
+  ansible.builtin.systemd_service:
+    name: incus-docker-forward
+    enabled: true
+    state: started
+    daemon_reload: true
+
+- name: Read Incus storage pools
+  ansible.builtin.command: incus storage list --format csv
+  register: incus_pools
+  changed_when: false
+  check_mode: false
+
+- name: Initialise Incus — bridge, btrfs pool on the incus LV, default profile
+  ansible.builtin.command:
+    cmd: incus admin init --preseed
+    stdin: "{{ lookup('ansible.builtin.template', 'preseed.yaml.j2') }}"
+  when: incus_pools.stdout | trim | length == 0
+
+- name: Read existing instances
+  ansible.builtin.command: incus list --format csv --columns n
+  register: incus_instances
+  changed_when: false
+  check_mode: false
+
+- name: Launch VMs (config and cloud-init from instance.yaml.j2)
+  ansible.builtin.command:
+    cmd: incus launch {{ item.image }} {{ item.name }} --vm
+    stdin: "{{ lookup('ansible.builtin.template', 'instance.yaml.j2') }}"
+  loop: "{{ incus_vms }}"
+  when: item.name not in incus_instances.stdout_lines
+
+- name: Wait for cloud-init to finish in each VM
+  ansible.builtin.command: incus exec {{ item.name }} -- cloud-init status --wait
+  loop: "{{ incus_vms }}"
+  register: incus_cloud_init
+  retries: 30          # the incus agent answers ~30-60s after first boot
+  delay: 10
+  until: incus_cloud_init.rc in [0, 2]    # 2 = finished with recoverable warnings
+  failed_when: incus_cloud_init.rc not in [0, 2]
+  changed_when: false

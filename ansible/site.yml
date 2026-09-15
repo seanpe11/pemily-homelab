@@ -6,4 +6,11 @@
     - { role: base,          tags: [root, base],    become: true }
     - { role: cockpit,       tags: [root, cockpit], become: true }
     - { role: lvm,           tags: [root, lvm],     become: true }
+    - { role: incus,         tags: [incus],         become: true }   # after lvm: its pool is the incus LV
+    - { role: k3s,           tags: [k3s],           become: true }   # pemily-homelab family cluster — not built yet
     - { role: network,       tags: [network, never], become: true }
+
+- name: seanpe-homelab cluster — k3s in the Incus VM
+  hosts: seanpe_homelab
+  roles:
+    - { role: k3s, tags: [seanpe-homelab], become: true }

@@ -1,0 +1,5 @@
+k3s_version: v1.36.4+k3s1          # pinned; bump deliberately, after reading the release notes
+k3s_cluster_name: cluster          # kubeconfig context name and ~/.kube/<name>.yaml on the control machine
+k3s_storage_mount: /var/lib/rancher/k3s/storage   # must be a mountpoint before install; "" to skip the check
+k3s_tls_san: []
+k3s_api_url: "https://{{ ansible_host }}:6443"    # API URL written into the local kubeconfig

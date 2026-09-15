@@ -17,6 +17,9 @@ cd ansible
 ansible-playbook site.yml --tags user --check --diff        # dry run, no root needed
 ansible-playbook site.yml --tags user                       # HA compose + user services
 ansible-playbook site.yml --tags root --ask-become-pass     # linger, Cockpit, LVM
+ansible-playbook site.yml --tags root,incus --ask-become-pass   # + Incus and the seanpe-homelab VM
+ansible-playbook site.yml --tags seanpe-homelab               # k3s inside that VM (no sudo prompt)
+ansible-playbook site.yml --tags k3s --ask-become-pass      # pemily-homelab family cluster k3s (after LVM; not built yet)
 ```
 
 - `user` — runs as `pemily`, no sudo. The service cut-over only happens once linger is on.

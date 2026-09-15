@@ -1,0 +1,17 @@
+networks:
+  - name: incusbr0
+    type: bridge
+    config:
+      ipv4.address: {{ incus_bridge_cidr }}
+      ipv4.nat: "true"
+      ipv6.address: none
+storage_pools:
+  - name: default
+    driver: btrfs
+    config:
+      source: {{ incus_pool_device }}
+profiles:
+  - name: default
+    devices:
+      root: { type: disk, path: /, pool: default }
+      eth0: { type: nic, name: eth0, network: incusbr0 }

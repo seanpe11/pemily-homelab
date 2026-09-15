@@ -1,4 +1,5 @@
 # Creates LVs from free VG space. Never touches ubuntu-lv, never shrinks, never resizes.
+# An LV without `mount` is left raw for its owner (Incus formats the incus LV as its btrfs pool).
 - name: Create logical volumes
   community.general.lvol:
     vg: "{{ lvm_vg }}"
@@ -8,12 +9,12 @@
     resizefs: false
   loop: "{{ lvm_volumes }}"
 
-- name: ext4 on each new LV (skips if a filesystem already exists)
+- name: ext4 on each new LV that gets mounted (skips if a filesystem already exists)
   community.general.filesystem:
     fstype: ext4
     dev: "/dev/{{ lvm_vg }}/{{ item.name }}"
     force: false
-  loop: "{{ lvm_volumes }}"
+  loop: "{{ lvm_volumes | selectattr('mount', 'defined') }}"
 
 - name: Mount and persist in fstab
   ansible.posix.mount:
@@ -22,4 +23,4 @@
     fstype: ext4
     opts: defaults,noatime
     state: mounted
-  loop: "{{ lvm_volumes }}"
+  loop: "{{ lvm_volumes | selectattr('mount', 'defined') }}"
