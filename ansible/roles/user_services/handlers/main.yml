@@ -1,0 +1,7 @@
+# Only fires on a config change. Drops home.seanpe.io for a few seconds while the tunnel reconnects.
+- name: Restart cloudflared tunnel
+  ansible.builtin.systemd_service:
+    scope: user
+    name: cloudflared-tunnel
+    state: restarted
+  when: linger_now.stdout == "yes"

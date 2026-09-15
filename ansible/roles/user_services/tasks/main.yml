@@ -23,6 +23,7 @@
     dest: "{{ homelab_home }}/.cloudflared/config.yml"
     mode: "0600"
     backup: true
+  notify: Restart cloudflared tunnel   # a config change is otherwise never picked up
 
 - name: printer-forward script matches the repo
   ansible.builtin.copy:
