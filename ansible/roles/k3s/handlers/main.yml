@@ -2,3 +2,4 @@
   ansible.builtin.systemd_service:
     name: k3s
     state: restarted
+  when: not (k3s_unreachable_in_check | default(false))
