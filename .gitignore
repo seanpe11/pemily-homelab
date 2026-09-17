@@ -21,3 +21,6 @@ kubeconfig*
 # ─── Editor / OS ───────────────────────────────────────────
 .DS_Store
 *.swp
+
+# real values for this machine (see homelab.yml.example)
+ansible/group_vars/homelab.yml

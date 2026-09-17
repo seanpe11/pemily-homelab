@@ -1,8 +1,8 @@
 # Tailnet -> LAN TCP forwarder for the Klipper printer (Fluidd + Moonraker).
 # Raw TCP, so websockets pass through untouched. Binds only to the tailscale IP.
 import asyncio
-BIND = "TAILNET_IP"
-PRINTER = "PRINTER_LAN_IP"
+BIND = "{{ tailnet_ip }}"
+PRINTER = "{{ printer_lan_ip }}"
 ROUTES = {8090: 80, 7125: 7125}   # local port -> printer port
 
 async def pipe(r, w):

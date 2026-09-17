@@ -26,8 +26,8 @@
   notify: Restart cloudflared tunnel   # a config change is otherwise never picked up
 
 - name: printer-forward script matches the repo
-  ansible.builtin.copy:
-    src: forward.py
+  ansible.builtin.template:
+    src: forward.py.j2
     dest: "{{ homelab_home }}/printer-forward/forward.py"
     mode: "0755"
 

@@ -1,14 +1,17 @@
 # pemily-homelab
 
-Declarative config for **donnager** (Dell OptiPlex 7070, tailnet name `pemily-homelab`).
-Plan, decisions and inventory live in the vault note `02-Projects/Donnager.md`.
+Declarative config for **donnager** (Dell OptiPlex 7070) — the host layer, and the family
+Kubernetes cluster named `pemily-homelab`. The personal cluster lives in a separate repo,
+`seanpe-homelab`, and runs in an Incus VM on this box.
+
+Copy `ansible/group_vars/homelab.yml.example` to `homelab.yml` and fill in your own addresses.
 
 | Layer | Where | Applied by |
 | :--- | :--- | :--- |
 | Host (LVM, systemd, Cockpit, network) | `ansible/` | Ansible |
 | Home Assistant | `compose/homeassistant/` | Ansible → Docker Compose |
 | Family cluster (Immich, Jellyfin) | `clusters/family/` | Flux *(Phase 2)* |
-| Personal cluster (seanpe.io, PepeVault Server) | `clusters/personal/` | Flux *(Phase 3)* |
+| Personal cluster (seanpe.io, Supabase) | separate repo `seanpe-homelab`, in an Incus VM | Flux |
 
 ## Running
 

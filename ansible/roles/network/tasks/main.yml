@@ -2,4 +2,4 @@
 # isn't relying on the interface being changed. Reserve eno1's address on the router first.
 - name: Placeholder — wifi disable and eno1 reservation not implemented yet
   ansible.builtin.debug:
-    msg: "Set the DHCP reservation for eno1 (HOST_LAN_IP) on the router, then implement a netplan change here."
+    msg: "Set the DHCP reservation for eno1 ({{ eno1_lan_ip | default('see group_vars') }}) on the router, then implement a netplan change here."
