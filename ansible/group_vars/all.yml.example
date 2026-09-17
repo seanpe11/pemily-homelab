@@ -1,0 +1,4 @@
+# Copy to all.yml and fill in. Needed by both the host play and the VM play,
+# because the VM is reached with ProxyJump through the host.
+homelab_user: youruser
+tailnet_ip: 100.64.0.1

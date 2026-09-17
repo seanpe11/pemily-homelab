@@ -11,6 +11,12 @@ Immich and Jellyfin live here (Phase 4). It's the stable one — upgrade rarely,
 
 Both decrypt SOPS secrets with the `sops-age` Secret in `flux-system`.
 
+> ⚠️ **This runbook is unverified and partly wrong.** It was written before the personal cluster
+> was built, and describes `flux bootstrap` with a deploy key plus a fresh `family.agekey`.
+> What actually worked for `seanpe-homelab` was committing `flux install --export` output and
+> reading over **HTTPS with no credentials** — but that only works because that repo is *public*.
+> This repo is private, so Flux needs a deploy key or a PAT. Verify each step before following it.
+
 ## Bootstrap (once)
 
 Needs on the control machine: `flux` v2.9.5, `age`, `sops`, `kubectl`, `ansible`.

@@ -1,0 +1,38 @@
+# Puts the VM on the tailnet so agents on Sean's own machines can reach the Supabase MCP
+# endpoint (superuser SQL — see ops/rocinante notes) without it ever facing the Internet.
+- name: Tailscale apt key
+  ansible.builtin.get_url:
+    url: https://pkgs.tailscale.com/stable/ubuntu/noble.noarmor.gpg
+    dest: /usr/share/keyrings/tailscale-archive-keyring.gpg
+    mode: "0644"
+
+- name: Tailscale apt repo
+  ansible.builtin.apt_repository:
+    repo: "deb [signed-by=/usr/share/keyrings/tailscale-archive-keyring.gpg] https://pkgs.tailscale.com/stable/ubuntu noble main"
+    filename: tailscale
+    state: present
+
+- name: tailscaled installed and running
+  ansible.builtin.apt:
+    name: tailscale
+    state: present
+    update_cache: true
+
+- name: tailscaled enabled
+  ansible.builtin.systemd_service:
+    name: tailscaled
+    enabled: true
+    state: started
+
+- name: Report whether the node still needs to be authenticated
+  ansible.builtin.command: tailscale status --json
+  register: ts
+  changed_when: false
+  failed_when: false
+
+- name: How to finish
+  ansible.builtin.debug:
+    msg: >-
+      Tailscale installed. If BackendState is NeedsLogin, run
+      `sudo tailscale up --hostname={{ inventory_hostname }} --accept-dns=false`
+      on the VM and open the URL it prints.

@@ -13,4 +13,5 @@
 - name: seanpe-homelab cluster — k3s in the Incus VM
   hosts: seanpe_homelab
   roles:
+    - { role: tailscale, tags: [tailscale], become: true }
     - { role: k3s, tags: [seanpe-homelab], become: true }

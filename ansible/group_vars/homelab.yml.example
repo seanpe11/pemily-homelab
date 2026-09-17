@@ -3,9 +3,7 @@
 # tunnel it runs, and the LAN layout — none of it secret, none of it worth publishing.
 # The machine is donnager. pemily-homelab is the family cluster (and its repo), not a host.
 host_name: donnager
-homelab_user: pemily
 homelab_home: /home/pemily
-tailnet_ip: 100.64.0.1              # your host on the tailnet
 
 # Cloudflare tunnel (credentials JSON stays on the host, never in git)
 cloudflared_tunnel_name: pemily-home

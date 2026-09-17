@@ -24,3 +24,4 @@ kubeconfig*
 
 # real values for this machine (see homelab.yml.example)
 ansible/group_vars/homelab.yml
+ansible/group_vars/all.yml
