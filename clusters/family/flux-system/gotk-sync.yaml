@@ -1,0 +1,29 @@
+# Written by hand to match `flux bootstrap` output (flux v2.9.5).
+#
+# This repo is PUBLIC, so the GitRepository reads over anonymous HTTPS and there is no deploy key
+# and no secretRef to rotate — the same arrangement seanpe-homelab uses. If this repo is ever made
+# private, this file breaks and Flux needs a deploy key or a PAT; that is the trade being made here.
+---
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: GitRepository
+metadata:
+  name: flux-system
+  namespace: flux-system
+spec:
+  interval: 1m0s
+  ref:
+    branch: main
+  url: https://github.com/seanpe11/pemily-homelab
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: flux-system
+  namespace: flux-system
+spec:
+  interval: 10m0s
+  path: ./clusters/family
+  prune: true
+  sourceRef:
+    kind: GitRepository
+    name: flux-system

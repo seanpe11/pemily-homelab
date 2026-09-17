@@ -1,0 +1,17 @@
+# Static local volumes for the dedicated LVs carved in ansible/roles/lvm.
+#
+# k3s ships local-path as the default StorageClass and it writes to
+# /var/lib/rancher/k3s/storage — the 100 GiB k3s-family LV. That is the right home for small
+# PVCs (databases, caches), but NOT for Immich's library: the 350 GiB immich-library LV exists
+# precisely so photos cannot fill the cluster's volume. Anything that must land on a specific LV
+# binds to one of the PVs below instead of to local-path.
+#
+# no-provisioner: nothing is created dynamically. The PVs here are declared by hand because the
+# filesystems behind them are declared by hand, in Ansible.
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: donnager-local
+provisioner: kubernetes.io/no-provisioner
+volumeBindingMode: WaitForFirstConsumer
+reclaimPolicy: Retain

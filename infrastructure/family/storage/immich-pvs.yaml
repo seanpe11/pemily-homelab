@@ -1,0 +1,52 @@
+# The two LVs carved for Immich, surfaced as PVs bound to donnager by node affinity.
+#
+# reclaimPolicy: Retain is load-bearing. These hold the family's photos and the only backup of
+# them; a deleted PVC must never take the data with it. Reclaiming means an explicit `kubectl
+# delete pv` plus an explicit `rm` on the host, which is the point.
+#
+# Sizes are the usable figures from `df -h` on donnager (2026-09-17), rounded down. They are
+# advisory for a local PV — the real limit is the LV, and `lvextend -r -L +NG` grows it.
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: immich-library
+spec:
+  capacity:
+    storage: 340Gi
+  accessModes:
+    - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: donnager-local
+  local:
+    path: /srv/immich/library
+  nodeAffinity:
+    required:
+      nodeSelectorTerms:
+        - matchExpressions:
+            - key: kubernetes.io/hostname
+              operator: In
+              values:
+                - donnager
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: immich-backups
+spec:
+  capacity:
+    storage: 240Gi
+  accessModes:
+    - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: donnager-local
+  local:
+    path: /srv/backups/immich
+  nodeAffinity:
+    required:
+      nodeSelectorTerms:
+        - matchExpressions:
+            - key: kubernetes.io/hostname
+              operator: In
+              values:
+                - donnager

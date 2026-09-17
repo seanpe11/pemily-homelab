@@ -1,0 +1,11 @@
+# SOPS rules for this repo. One age key per cluster, path-scoped — the family cluster's key
+# cannot decrypt the personal cluster's secrets and vice versa.
+#
+# Only files named *.sops.yaml are encrypted, so a plain manifest is never silently half-encrypted.
+# The private half lives at ~/.config/sops/age/family.agekey on rocinante and as the `sops-age`
+# Secret in the cluster's flux-system namespace. BACK IT UP OFF THIS MACHINE — it is the only
+# thing that can decrypt this cluster's secrets, and this repo is public.
+creation_rules:
+  - path_regex: (clusters|infrastructure|apps)/family/.*\.sops\.yaml$
+    encrypted_regex: ^(data|stringData)$
+    age: age1ayn7s82v4pc82rywq6fmmpet92ck2ggxdsdh4hetjxt6dkvs9vksnxx26a   # family cluster — PUBLIC key

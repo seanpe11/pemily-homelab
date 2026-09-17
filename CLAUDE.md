@@ -42,8 +42,10 @@ needs no password because cloud-init gave that VM passwordless sudo.
    `ansible-playbook site.yml --tags k3s --ask-become-pass`. It refuses to run unless
    `/var/lib/rancher/k3s/storage` is a mountpoint, so local-path PVs can't land on the 100 GiB root.
    Writes `~/.kube/pemily-homelab.yaml` on rocinante.
-2. **Flux** for `clusters/family/`. The skeleton exists (`infrastructure.yaml`, `apps.yaml`, both with
-   SOPS decryption); `infrastructure/family/` and `apps/family/` are empty kustomizations.
+2. **Flux** for `clusters/family/`. Manifests are written and validated but **not yet applied** —
+   `flux-system/` (components + anonymous-HTTPS GitRepository), and `infrastructure/family/` now
+   carries the `immich` namespace, a `donnager-local` StorageClass and the two Immich PVs.
+   `apps/family/` is still an empty kustomization. Needs the repo pushed to GitHub first.
 3. **Immich** — the point of the 350G + 250G LVs.
 4. **Jellyfin** — a draft is parked at `apps/family/jellyfin/`, unreferenced. See the blocker below.
 
@@ -63,17 +65,21 @@ needs no password because cloud-init gave that VM passwordless sudo.
   to remove those values, so don't reintroduce them into tracked files.
 - **LVM grows, never shrinks.** `lvextend -r -L +NG` is safe; shrinking ext4 is not.
 
-## Two decisions the next session has to make
+## One decision the next session has to make
 
-### Flux auth — the seanpe-homelab shortcut does NOT transfer
-`seanpe-homelab` skipped `flux bootstrap` and its deploy key by committing `flux install --export`
-output and pointing a GitRepository at **HTTPS**, which works only because that repo is **public**.
-This repo is meant to be **private**, so Flux needs either:
-- `flux bootstrap git --url=ssh://…` and a **deploy key with write access** added in the GitHub UI, or
-- a read-only **PAT** in a `flux create secret git` Secret, keeping the `flux install --export` layout.
+### ~~Flux auth~~ — decided 2026-09-17: **this repo is public, Flux reads it anonymously**
 
-`clusters/family/README.md` still describes the deploy-key flow *and* a fresh `family.agekey`.
-Treat it as a draft: verify before following it.
+The `seanpe-homelab` shortcut transfers after all, because the premise changed: this repo is
+**public**, not private. `clusters/family/flux-system/` holds committed `flux install --export`
+output and a GitRepository pointing at **HTTPS with no credential** — no deploy key, no PAT,
+nothing to rotate, and nothing Flux holds that can write back to the repo.
+
+Bootstrap is therefore `kubectl apply -k clusters/family/flux-system`, **not** `flux bootstrap`.
+The runbook in `clusters/family/README.md` is now verified — follow it in order; step 4 (the
+`sops-age` Secret) has to happen before step 5 or both Kustomizations fail on a missing secretRef.
+
+**The coupling to remember:** making this repo private later breaks `gotk-sync.yaml`. That is the
+price of the no-credential path, and it is paid only if the visibility changes.
 
 ### Jellyfin has nowhere to put media
 The disk is fully committed: 100 root + 100 k3s-family + 350 immich-library + 250 immich-backups
@@ -88,9 +94,12 @@ an **NVIDIA** GPU — both wrong for donnager. Rework it for `/dev/dri` passthro
 
 ## Secrets
 
-This repo has **no SOPS setup yet**. The decision on record is one age key per cluster; the personal
-cluster reuses the pre-existing key at `~/Documents/explore/age.key`. A family key has to be created
-and its public half put in a `.sops.yaml` here before any Secret is committed.
+SOPS is set up (2026-09-17). `.sops.yaml` at the repo root encrypts `*.sops.yaml` under
+`clusters|infrastructure|apps/family/` to the **family** age key — public half in that file,
+private half at `~/.config/sops/age/family.agekey` on rocinante, **not yet backed up off it**.
+One age key per cluster: the personal cluster keeps its own at `~/Documents/explore/age.key`.
+A Secret in a file *not* named `*.sops.yaml` is committed in plaintext with no warning, and this
+repo is public — check `git diff` before pushing one.
 Never commit a plaintext Secret, a kubeconfig, or `~/.cloudflared/*.json`.
 
 ## Patterns worth copying from seanpe-homelab
