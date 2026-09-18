@@ -1,0 +1,31 @@
+# TLS for photos.seanpe.io. Certificates are issued by Let's Encrypt over HTTP-01, which needs
+# inbound port 80 forwarded to this cluster in addition to 443.
+#
+# HTTP-01 rather than DNS-01 deliberately: DNS-01 would need a Cloudflare API token stored in the
+# repo, and this setup has no other use for one. If Comcast turns out to block inbound 80, switch
+# the ClusterIssuer's solver to DNS-01 — that is the only reason to add the token.
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: cert-manager
+  namespace: cert-manager
+spec:
+  interval: 1h
+  releaseName: cert-manager
+  chart:
+    spec:
+      chart: cert-manager
+      version: v1.21.2
+      sourceRef:
+        kind: HelmRepository
+        name: jetstack
+        namespace: flux-system
+  install:
+    timeout: 10m
+    remediation:
+      retries: 3
+  upgrade:
+    timeout: 10m
+  values:
+    crds:
+      enabled: true      # the ClusterIssuer in infrastructure/family-config depends on these

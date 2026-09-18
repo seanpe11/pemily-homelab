@@ -1,0 +1,40 @@
+# Let's Encrypt issuers. These live in a separate Flux Kustomization from cert-manager itself
+# because a ClusterIssuer is a cert-manager CRD: applied in the same pass as the chart that
+# installs the CRD, it fails until the next reconcile. infrastructure-config dependsOn
+# infrastructure, so by the time this applies the CRDs exist.
+#
+# Staging exists to avoid burning Let's Encrypt's rate limits (5 failed validations per hostname
+# per hour) while the port-forward is still being proved out. Point an Ingress at
+# letsencrypt-staging first if issuance is misbehaving; its certs are untrusted but issuance is
+# otherwise identical.
+#
+# No `email:` is set, which Let's Encrypt permits — it only means no expiry-warning mail.
+# cert-manager renews automatically, so the warnings are belt-and-braces. Add one here if wanted.
+---
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: letsencrypt-staging
+spec:
+  acme:
+    server: https://acme-staging-v02.api.letsencrypt.org/directory
+    privateKeySecretRef:
+      name: letsencrypt-staging-account-key
+    solvers:
+      - http01:
+          ingress:
+            ingressClassName: nginx
+---
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: letsencrypt
+spec:
+  acme:
+    server: https://acme-v02.api.letsencrypt.org/directory
+    privateKeySecretRef:
+      name: letsencrypt-account-key
+    solvers:
+      - http01:
+          ingress:
+            ingressClassName: nginx

@@ -1,15 +1,17 @@
+# Configuration that depends on CRDs installed by infrastructure/ (currently the cert-manager
+# ClusterIssuers). Split out so a CRD and a resource using it never land in the same apply.
 apiVersion: kustomize.toolkit.fluxcd.io/v1
 kind: Kustomization
 metadata:
-  name: apps
+  name: infrastructure-config
   namespace: flux-system
 spec:
   interval: 10m
-  path: ./apps/family
+  path: ./infrastructure/family-config
   prune: true
+  wait: true
   dependsOn:
     - name: infrastructure
-    - name: infrastructure-config   # Immich's Ingress needs the ClusterIssuer and the nginx class
   sourceRef:
     kind: GitRepository
     name: flux-system

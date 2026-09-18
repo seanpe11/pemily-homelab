@@ -1,0 +1,37 @@
+# Public entry point for photos.seanpe.io.
+#
+# CRITICAL — the DNS record for this host must be DNS-only (grey cloud) in Cloudflare, pointing
+# straight at the home WAN IP. If it is proxied (orange cloud), traffic runs through Cloudflare's
+# proxy again and the 100 MB request-body cap comes back, which is the exact thing this whole
+# port-forward arrangement exists to avoid.
+#
+# The body-size and timeout annotations repeat the controller-level defaults on purpose: they are
+# what keep large video uploads working, and an annotation here survives someone changing the
+# controller's global config for another app.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: immich
+  namespace: immich
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt
+    nginx.ingress.kubernetes.io/proxy-body-size: "0"      # unlimited; nginx defaults to 1 MB
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "600"
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - photos.seanpe.io
+      secretName: immich-tls      # created by cert-manager from the ClusterIssuer above
+  rules:
+    - host: photos.seanpe.io
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: immich-server
+                port:
+                  number: 2283
