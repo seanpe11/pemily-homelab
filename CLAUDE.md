@@ -38,16 +38,28 @@ needs no password because cloud-init gave that VM passwordless sudo.
 
 ## What is NOT built yet — the actual work
 
-1. **k3s on the host** = the family cluster. The role is written and parameterised:
-   `ansible-playbook site.yml --tags k3s --ask-become-pass`. It refuses to run unless
-   `/var/lib/rancher/k3s/storage` is a mountpoint, so local-path PVs can't land on the 100 GiB root.
-   Writes `~/.kube/pemily-homelab.yaml` on rocinante.
-2. **Flux** for `clusters/family/`. Manifests are written and validated but **not yet applied** —
-   `flux-system/` (components + anonymous-HTTPS GitRepository), and `infrastructure/family/` now
-   carries the `immich` namespace, a `donnager-local` StorageClass and the two Immich PVs.
-   `apps/family/` is still an empty kustomization. Needs the repo pushed to GitHub first.
-3. **Immich** — the point of the 350G + 250G LVs.
+Phase 2 closed on 2026-09-17: k3s, Flux and Immich are **live**. What's left:
+
+1. **Remote access to Immich.** Nothing is exposed off the LAN yet. Uploads deliberately stay on
+   the LAN (see the 100 MB trap below); a cloudflared tunnel for *viewing* still has to be built,
+   and needs a CLI-created tunnel plus its credentials SOPS-encrypted into `infrastructure/family/`.
+2. **Immich accounts.** First-run admin has not been created. The plan: one account per person,
+   plus a single "Family" album shared with everyone as **editor**, so each library stays private
+   and only what's put in the album is shared.
+3. **Backups.** `immich-backups` (250G) is declared as a PV and mounted, but **nothing writes to
+   it yet**. Immich holds the family's photos and currently has no backup job.
 4. **Jellyfin** — a draft is parked at `apps/family/jellyfin/`, unreferenced. See the blocker below.
+
+## What Phase 2 built (2026-09-17)
+
+- k3s v1.36.4+k3s1, single server, node name **`donnager`**, internal IP `192.168.8.149`.
+  Kubeconfig `~/.kube/pemily-homelab.yaml`, context `pemily-homelab`.
+- Flux reconciling `clusters/family` from the **public** repo over anonymous HTTPS.
+- `donnager-local` StorageClass (no-provisioner) + `Retain` PVs for both Immich LVs. The library
+  PVC pins `volumeName` so it cannot bind to the backups volume by accident.
+- Immich chart 0.12.0 (appVersion v2.6.3) + a hand-written Postgres, reachable at
+  **`http://192.168.8.149:2283`** via a `LoadBalancer` on k3s servicelb. Verified: the server pod's
+  `/data` is the `immich-library` LV, not root.
 
 ## Traps that already cost time — don't rediscover these
 
@@ -64,6 +76,18 @@ needs no password because cloud-init gave that VM passwordless sudo.
   tailnet address, tunnel UUID and LAN layout. Copy from the `.example` files. History was rewritten
   to remove those values, so don't reintroduce them into tracked files.
 - **LVM grows, never shrinks.** `lvextend -r -L +NG` is safe; shrinking ext4 is not.
+- **Cloudflare Tunnel caps request bodies at 100 MB** and it cannot be raised on any plan. Immich
+  has not implemented chunked uploads (on the roadmap, not shipped), so any tunnel path silently
+  fails on larger videos. This is why phones back up over the **LAN** to `192.168.8.149:2283` and a
+  tunnel is only for remote *viewing* — the cap applies to uploads, not to responses.
+- **`kubectl apply -k` on flux-system fails the first time.** CRDs and the CRs that use them go in
+  one apply; the second pass succeeds. See `clusters/family/README.md` step 5.
+- **The Immich Helm chart lags the app.** Published 0.12.0 is appVersion v2.6.3 while the chart's
+  main branch advertises 0.13.2/v3.2.0. Pin the chart version; check `helm search repo immich/immich
+  --versions` rather than reading the repo's main branch.
+- **Immich needs Postgres 14 with VectorChord *and* pgvecto.rs.** Stock Postgres fails at startup,
+  and the chart ships no database at all. Keep `apps/family/immich/postgres.yaml`'s image in step
+  with the appVersion the HelmRelease deploys.
 
 ## One decision the next session has to make
 

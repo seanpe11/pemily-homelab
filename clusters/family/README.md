@@ -67,10 +67,22 @@ Needs on the control machine: `flux` v2.9.5, `age`, `sops`, `kubectl`, `ansible`
    ```
    The key inside the Secret must end in `.agekey` or kustomize-controller won't find it.
 
-5. **Apply Flux.** No `flux bootstrap` — the manifests are committed, so this is an apply.
+5. **Apply Flux — twice.** No `flux bootstrap`; the manifests are committed, so this is an apply.
+   The first pass installs the CRDs *and* tries to create the GitRepository and Kustomization that
+   use them, and kubectl's discovery cache doesn't know them yet:
+   `no matches for kind "Kustomization" ... ensure CRDs are installed first`. That is expected, not
+   a failure. Wait for the CRDs, then apply again.
    ```sh
-   kubectl --context pemily-homelab apply -k clusters/family/flux-system
+   kubectl --context pemily-homelab apply -k clusters/family/flux-system   # CRDs; the 2 CRs fail
+   kubectl --context pemily-homelab wait --for=condition=established --timeout=90s \
+     crd/gitrepositories.source.toolkit.fluxcd.io \
+     crd/kustomizations.kustomize.toolkit.fluxcd.io
+   kubectl --context pemily-homelab apply -k clusters/family/flux-system   # now the CRs land
    ```
+
+   `apps` then reports `dependency 'flux-system/infrastructure' is not ready` until infrastructure
+   finishes; it clears on the next interval, or immediately with
+   `flux reconcile kustomization apps --with-source`.
 
 6. **Check.**
    ```sh
