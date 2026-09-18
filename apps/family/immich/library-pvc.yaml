@@ -1,0 +1,17 @@
+# Binds the 350 GiB immich-library LV (declared as a PV in infrastructure/family/storage).
+#
+# volumeName is explicit on purpose: two PVs share the donnager-local class, and a claim that
+# picked up immich-backups instead would put the library on the backup volume without erroring.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: immich-library
+  namespace: immich
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: donnager-local
+  volumeName: immich-library
+  resources:
+    requests:
+      storage: 340Gi

@@ -1,0 +1,75 @@
+# Immich via the official chart. Values below were verified by rendering chart 0.12.0 locally
+# (`helm template`) before being committed — the bjw-s common schema this chart builds on is not
+# obvious, so don't hand-edit these keys without re-rendering.
+#
+# Version pinned deliberately. 0.12.0 is the latest PUBLISHED chart; the chart's main branch is
+# ahead at 0.13.2/v3.2.0 but unreleased. This is the household's cluster: bump on purpose.
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: immich
+  namespace: immich
+spec:
+  interval: 1h
+  releaseName: immich
+  chart:
+    spec:
+      chart: immich
+      version: 0.12.0        # appVersion v2.6.3
+      sourceRef:
+        kind: HelmRepository
+        name: immich
+        namespace: flux-system
+  install:
+    timeout: 20m             # first boot runs database migrations and pulls a ~1.5 GB server image
+    remediation:
+      retries: 3
+  upgrade:
+    timeout: 20m
+  values:
+    controllers:
+      main:
+        containers:
+          main:
+            env:
+              DB_HOSTNAME: immich-postgres
+              DB_USERNAME: immich
+              DB_DATABASE_NAME: immich
+              DB_PASSWORD:
+                valueFrom:
+                  secretKeyRef:
+                    name: immich-db
+                    key: password
+
+    immich:
+      persistence:
+        library:
+          existingClaim: immich-library   # the 350 GiB LV; the chart never creates this itself
+
+    valkey:
+      enabled: true          # the chart ships it disabled, and Immich will not start without Redis
+      persistence:
+        data:
+          type: persistentVolumeClaim    # emptyDir would drop the job queues on every restart
+          size: 1Gi
+          accessMode: ReadWriteOnce
+
+    machine-learning:
+      persistence:
+        cache:
+          # emptyDir here means re-downloading the ML models on every pod restart. RWO rather than
+          # the chart's suggested RWX because local-path is single-node and cannot do RWX.
+          type: persistentVolumeClaim
+          size: 10Gi
+          accessMode: ReadWriteOnce
+
+    server:
+      service:
+        main:
+          # k3s servicelb is still enabled (only traefik was disabled), so this binds 2283 on every
+          # node address — including the LAN 192.168.8.149 that the phones back up to, and the
+          # tailnet address. That LAN path is what keeps uploads clear of Cloudflare's 100 MB cap.
+          type: LoadBalancer
+          ports:
+            http:
+              port: 2283

@@ -1,0 +1,11 @@
+# Official Immich chart. Note the repo lags the app: chart 0.12.0 ships appVersion v2.6.3 while
+# the chart's main branch is already on 0.13.2/v3.2.0. Pin the chart version in the HelmRelease
+# and bump deliberately — this is the cluster the household depends on.
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: HelmRepository
+metadata:
+  name: immich
+  namespace: flux-system
+spec:
+  interval: 12h
+  url: https://immich-app.github.io/immich-charts

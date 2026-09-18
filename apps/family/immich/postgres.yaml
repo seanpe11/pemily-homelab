@@ -1,0 +1,98 @@
+# Immich's database. NOT stock Postgres: Immich requires Postgres 14 with both VectorChord and
+# pgvecto.rs, and fails at startup without them. This image and tag are exactly what Immich's own
+# docker-compose pins at v2.6.3 — keep them in step with the appVersion the HelmRelease deploys.
+#
+# The official Helm chart ships no database, so this is hand-written. It deliberately stays a
+# plain Deployment rather than an operator: the family cluster is the boring one, and CNPG was
+# removed from seanpe-homelab for the same reason.
+#
+# Data lands on the default local-path class (the 100 GiB k3s-family LV), NOT on the photo LV.
+# Immich's docs put the database at 1-3 GB; 20Gi is room to grow.
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: immich-postgres
+  namespace: immich
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 20Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: immich-postgres
+  namespace: immich
+spec:
+  selector:
+    app: immich-postgres
+  ports:
+    - port: 5432
+      targetPort: postgres
+      name: postgres
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: immich-postgres
+  namespace: immich
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate        # a ReadWriteOnce volume cannot be held by two pods during a rollout
+  selector:
+    matchLabels:
+      app: immich-postgres
+  template:
+    metadata:
+      labels:
+        app: immich-postgres
+    spec:
+      containers:
+        - name: postgres
+          image: ghcr.io/immich-app/postgres:14-vectorchord0.4.3-pgvectors0.2.0
+          ports:
+            - name: postgres
+              containerPort: 5432
+          env:
+            - name: POSTGRES_USER
+              value: immich
+            - name: POSTGRES_DB
+              value: immich
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: immich-db
+                  key: password
+            - name: POSTGRES_INITDB_ARGS
+              value: --data-checksums
+            # initdb refuses a non-empty directory. A PV mounted at the data dir can contain
+            # lost+found, so keep PGDATA in a subdirectory of the mount.
+            - name: PGDATA
+              value: /var/lib/postgresql/data/pgdata
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/postgresql/data
+            - name: shm
+              mountPath: /dev/shm
+          readinessProbe:
+            exec:
+              command: ["pg_isready", "-U", "immich", "-d", "immich"]
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          livenessProbe:
+            exec:
+              command: ["pg_isready", "-U", "immich", "-d", "immich"]
+            initialDelaySeconds: 60
+            periodSeconds: 30
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: immich-postgres
+        - name: shm
+          emptyDir:
+            medium: Memory
+            sizeLimit: 128Mi    # compose sets shm_size: 128mb; the 64Mi default makes Postgres fail on larger queries
